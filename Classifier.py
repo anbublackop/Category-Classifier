@@ -1,16 +1,29 @@
 from collections import defaultdict as dt
 import os
-from flask import Flask, render_template, redirect, url_for, request, abort, flash
+from flask import Flask, render_template, redirect, url_for, request, abort, flash, jsonify
 import sys, requests, json, os
 import urllib
+import requests
 from bs4 import BeautifulSoup
+from newspaper import Article
+import nltk
 
 
 app = Flask (__name__)
 
+# @app.route("/getSummary")
+# def getSummary():
+# 	string = request.args.get('url')
+# 	#endpoint = "https://api.diffbot.com/v3/article"
+# 	endpoint = "https://api.embedly.com/1/extract"
+# 	key = "9722f40657d946b097b3a623d70d6d97"
+# 	#developer_token = "7dc3f90609b9a4b916680182d9ae219b"
+# 	response = requests.get(endpoint, {'url': "http://www.viralnova.com/woman-wears-mascara-bed-25-years-never-washes-face-see-eyelid/", 'key': key})
+# 	return jsonify(response.text)
+
+
 @app.route("/")
 def home():
-	
 	return render_template("home.html")
 
 @app.route("/GetCategory/", methods = ["POST"])
@@ -63,7 +76,24 @@ def getCategory():
 
 	file.close()
 
-	words = set(string.split()) - (asc_set)
+	article = Article(url)
+
+	article.download()
+
+	article.parse()
+
+	article.nlp()
+
+	summary = article.summary
+
+	keywords = article.keywords
+	
+	# print (article.text)
+
+	# print ("Article: ",article.summary)
+
+	# print ("Keywords: ", article.keywords)
+
 	
 	max_length, category = 0, "other"
 	
@@ -73,13 +103,16 @@ def getCategory():
 
 	for k,v in mydict.items():
 
-		matched_words = words.intersection(v)
+		matched_words = set(keywords).intersection(v)
 		
 		length = len(matched_words)
 		
+		print (k, matched_words)
+
 		category_dict[k] = length
 
 	max_value = max(category_dict.values())
+
 
 	for k, v in category_dict.items():
 		
@@ -107,10 +140,10 @@ def getCategory():
 
 	category = "/".join(category_list)		
 
-	return render_template("home.html", title = string, category = category)
+	return render_template("home.html", summary = summary, category = category)
 
 if __name__== '__main__':
 	
-	port = int(os.environ.get("PORT", 5000))
+	port = int(os.environ.get("PORT", 8000))
 	
 	app.run(debug = True, host = '0.0.0.0', port = port)
